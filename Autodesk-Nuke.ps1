@@ -8,7 +8,7 @@
     archivos o claves de registro bloqueados (PendingFileRenameOperations).
 .NOTES
     Autor: SSM-Dealis
-    Versión: 1.0.0
+    Versión: 2.0.0
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
@@ -38,6 +38,8 @@ $services = @(
     "AdskLicensingService", 
     "AdAppMgrSvc", 
     "AutodeskDesktopApp",
+    "AutodeskDesktopAppService",
+    "AGSService",
     "FlexNet Licensing Service",
     "FlexNet Licensing Service 64"
 )
@@ -53,7 +55,9 @@ foreach ($srv in $services) {
 
 $procesos = @(
     "acad", "inventor", "AdskLicensingService", "AdAppMgrSvc", 
-    "AutodeskDesktopApp", "AdODIS", "AdskIdentityManager",
+    "AutodeskDesktopApp", "AdODIS", "AdskIdentityManager", "GenuineService",
+    "AdskLicensingAgent", "AcEventSync", "AcQMod", "Autodesk Access UI Host", 
+    "AdskAccessCore", "ADPClientService",
     "FNPLicensingService", "FNPLicensingService64", "LMgrd", "Adlmint"
 )
 foreach ($proc in $procesos) { 
@@ -70,7 +74,23 @@ Write-Host "[OK] Procesos y servicios detenidos." -ForegroundColor Green
 # -----------------------------------------------------------------------------
 # 3. DESINSTALACIÓN DE PAQUETES MSI (Registro)
 # -----------------------------------------------------------------------------
-Write-Host "`n[PASO 2] Buscando y ejecutando desinstaladores MSI/ODIS de Autodesk..." -ForegroundColor Cyan
+Write-Host "`n[PASO 2] Ejecutando desinstaladores silenciosos principales de Autodesk..." -ForegroundColor Cyan
+
+# Desinstalador ODIS / Access directo (si existe)
+$odisUninstaller = "C:\Program Files\Autodesk\AdODIS\V1\RemoveODIS.exe"
+if (Test-Path $odisUninstaller) {
+    Write-Host "   Desinstalando Autodesk Access / ODIS..." -ForegroundColor Yellow
+    Start-Process -FilePath $odisUninstaller -ArgumentList "-q" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+}
+
+# Desinstalador AdskLicensing directo (si existe)
+$licUninstaller = "C:\Program Files (x86)\Common Files\Autodesk Shared\AdskLicensing\uninstall.exe"
+if (Test-Path $licUninstaller) {
+    Write-Host "   Desinstalando Autodesk Licensing Service..." -ForegroundColor Yellow
+    Start-Process -FilePath "`"$licUninstaller`"" -ArgumentList "--mode unattended" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+}
+
+Write-Host "Buscando y ejecutando otros desinstaladores (MSI/Registro)..." -ForegroundColor Cyan
 
 $registryPaths = @(
     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
@@ -114,11 +134,12 @@ $dirs = @(
     "$env:ProgramFiles\Autodesk", 
     "${env:ProgramFiles(x86)}\Autodesk", 
     "$env:ProgramData\Autodesk",
-    "$env:ProgramData\FLEXnet",
     "$env:LOCALAPPDATA\Autodesk", 
     "$env:APPDATA\Autodesk",
     "$env:ProgramFiles\Common Files\Autodesk Shared",
     "${env:ProgramFiles(x86)}\Common Files\Autodesk Shared",
+    "C:\Users\Public\Documents\Autodesk",
+    "C:\Users\Public\Autodesk",
     "$env:TEMP",
     "$env:WINDIR\Temp"
 )
@@ -136,6 +157,13 @@ foreach ($dir in $dirs) {
     } 
 }
 
+# Eliminar solo archivos adsk en FLEXnet superficialmente (para no afectar otras licencias)
+$flexNetPath = "$env:ProgramData\FLEXnet"
+if (Test-Path $flexNetPath) {
+    Write-Host "   Limpiando archivos de Autodesk en FLEXnet..." -ForegroundColor DarkGray
+    Get-ChildItem -Path $flexNetPath -Filter "adsk*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "[OK] Carpetas residuales procesadas." -ForegroundColor Green
 
 
@@ -148,7 +176,8 @@ Write-Host "`n[PASO 4] Limpiando el Registro de Windows y solucionando bucles de
 $regKeys = @(
     "HKLM:\SOFTWARE\Autodesk",
     "HKCU:\SOFTWARE\Autodesk",
-    "HKLM:\SOFTWARE\Wow6432Node\Autodesk"
+    "HKLM:\SOFTWARE\Wow6432Node\Autodesk",
+    "HKCR:\Autodesk"
 )
 
 foreach ($key in $regKeys) {

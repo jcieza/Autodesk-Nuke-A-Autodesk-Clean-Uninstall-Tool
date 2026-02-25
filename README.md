@@ -1,5 +1,10 @@
 # ☢️ Autodesk-Nuke | A Clean Uninstall Tool
 
+![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg?logo=powershell)
+![Windows](https://img.shields.io/badge/OS-Windows_10%20%7C%2011-blue.svg?logo=windows)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Status](https://img.shields.io/badge/Status-Stable-brightgreen.svg)
+
 > **A powerful, automated PowerShell script to completely remove Autodesk remnants, fix the "reboot loop" (PendingFileRenameOperations), and achieve a clean installation. By SSM-Dealis.**
 
 [English Version](#english) | [Versión en Español](#español)
