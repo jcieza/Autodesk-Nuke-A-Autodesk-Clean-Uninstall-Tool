@@ -18,7 +18,9 @@ This repository contains an advanced PowerShell script designed to deeply clean 
 
 ### 🚀 Features
 - **Auto-Privilege Elevation:** Automatically checks and requests Administrator rights.
-- **Deep Process Termination:** Forcefully stops core licensing services (`AdskLicensingService`, `FlexNet`, `AdAppMgrSvc`) and processes preventing uninstallation.
+- **Deep Process Termination:** Forcefully stops core licensing services (`AdskLicensingService`, `GenuineService`, `AdAppMgrSvc`) and processes preventing uninstallation.
+- **Surgical Uninstallation:** Directly executes hidden backend uninstallers for tools like Autodesk Access (ODIS) and Identity Manager.
+- **Ghost Entry Removal [v2.0]:** Scans and deletes orphaned "Add/Remove Programs" registry entries left behind by broken uninstallers.
 - **Aggressive Forcible Deletion:** Clears locked leftover files from `C:\Autodesk`, `%TEMP%`, and `AppData` to solve locked-file errors.
 - **Registry Repair (Reboot Loop Fix):** Specifically targets and deletes `PendingFileRenameOperations` and `RebootRequired` registry keys that trigger the infinite restart prompt during setup.
 
@@ -42,7 +44,9 @@ Este repositorio contiene un script de PowerShell avanzado diseñado para limpia
 
 ### 🚀 Características
 - **Auto-elevación de privilegios:** El script verifica y solicita permisos de Administrador automáticamente.
-- **Limpieza profunda de procesos:** Detiene forzosamente los servicios críticos de licencias (`AdskLicensingService`, `FlexNet`, `AdAppMgrSvc`) y procesos en segundo plano.
+- **Limpieza profunda de procesos:** Detiene forzosamente los servicios críticos de licencias (`AdskLicensingService`, `GenuineService`, `AdAppMgrSvc`) y procesos ocultos en segundo plano.
+- **Desinstalación Quirúrgica:** Ejecuta de manera directa y silenciosa los desinstaladores ocultos de herramientas como Autodesk Access (ODIS) y Identity Manager.
+- **Eliminación de Entradas Fantasma [v2.0]:** Escanea y borra los registros huérfanos de "Agregar o quitar programas" dejados por desinstaladores rotos.
 - **Eliminación Forzada Agresiva:** Borra archivos bloqueados en `C:\Autodesk`, `%TEMP%`, y `AppData` solucionando errores de archivos residuales.
 - **Reparación del Registro (Loop de Reinicio):** Elimina automáticamente las claves del registro `PendingFileRenameOperations` y `RebootRequired` causantes de que el instalador pida reiniciar la PC infinitamente.
 
