@@ -8,7 +8,7 @@
     archivos o claves de registro bloqueados (PendingFileRenameOperations).
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.0.0
+    Versión: 2.0.1
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
@@ -88,6 +88,13 @@ $licUninstaller = "C:\Program Files (x86)\Common Files\Autodesk Shared\AdskLicen
 if (Test-Path $licUninstaller) {
     Write-Host "   Desinstalando Autodesk Licensing Service..." -ForegroundColor Yellow
     Start-Process -FilePath "`"$licUninstaller`"" -ArgumentList "--mode unattended" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+}
+
+# Desinstalador Autodesk Identity Manager directo (si existe)
+$idUninstaller = "C:\Program Files\Autodesk\Autodesk Identity Manager\uninstall.exe"
+if (Test-Path $idUninstaller) {
+    Write-Host "   Desinstalando Autodesk Identity Manager..." -ForegroundColor Yellow
+    Start-Process -FilePath "`"$idUninstaller`"" -ArgumentList "--mode unattended" -Wait -NoNewWindow -ErrorAction SilentlyContinue
 }
 
 Write-Host "Buscando y ejecutando otros desinstaladores (MSI/Registro)..." -ForegroundColor Cyan
