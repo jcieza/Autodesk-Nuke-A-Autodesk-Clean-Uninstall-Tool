@@ -8,7 +8,7 @@
     archivos o claves de registro bloqueados (PendingFileRenameOperations).
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.0.1
+    Versión: 2.0.2
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
@@ -192,6 +192,23 @@ foreach ($key in $regKeys) {
         Write-Host "   Eliminando clave de registro: $key" -ForegroundColor DarkGray
         Remove-Item -Path $key -Recurse -Force -ErrorAction SilentlyContinue
     }
+}
+
+# -----------------------------------------------------------------------------
+# 5B. ELIMINACIÓN DE ENTRADAS FANTASMA (AGREGAR O QUITAR PROGRAMAS)
+# -----------------------------------------------------------------------------
+Write-Host "   Buscando y eliminando registros huérfanos de desinstalación..." -ForegroundColor DarkGray
+$uninstallRegistryPaths = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
+
+Get-ItemProperty $uninstallRegistryPaths -ErrorAction SilentlyContinue | 
+Where-Object { $_.DisplayName -match "Autodesk" -or $_.Publisher -match "Autodesk" } | 
+ForEach-Object {
+    Write-Host "   Eliminando registro fantasma: $($_.DisplayName)" -ForegroundColor Yellow
+    Remove-Item -Path $_.PSPath -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # Solucionar Loop de Reinicio ("PendingFileRenameOperations")
