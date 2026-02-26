@@ -40,15 +40,14 @@ This script modifies the Windows Registry and forcefully deletes system folders 
 <a name="español"></a>
 ## 🇪🇸 Español
 
-Este repositorio contiene un script de PowerShell avanzado diseñado para limpiar profundamente cualquier instalación de Autodesk (AutoCAD, Inventor, Maya, etc.) y solucionar el infame bucle infinito de "Reinicie antes de empezar la instalación" que bloquea nuevas instalaciones.
+Este repositorio contiene un script de PowerShell avanzado diseñado### 🌟 Características Principales (Features)
 
-### 🚀 Características
-- **Auto-elevación de privilegios:** El script verifica y solicita permisos de Administrador automáticamente.
-- **Limpieza profunda de procesos:** Detiene forzosamente los servicios críticos de licencias (`AdskLicensingService`, `GenuineService`, `AdAppMgrSvc`) y procesos ocultos en segundo plano.
-- **Desinstalación Quirúrgica:** Ejecuta de manera directa y silenciosa los desinstaladores ocultos de herramientas como Autodesk Access (ODIS) y Identity Manager.
-- **Eliminación de Entradas Fantasma [v2.0]:** Escanea y borra los registros huérfanos de "Agregar o quitar programas" dejados por desinstaladores rotos.
-- **Eliminación Forzada Agresiva:** Borra archivos bloqueados en `C:\Autodesk`, `%TEMP%`, y `AppData` solucionando errores de archivos residuales.
-- **Reparación del Registro (Loop de Reinicio):** Elimina automáticamente las claves del registro `PendingFileRenameOperations` y `RebootRequired` causantes de que el instalador pida reiniciar la PC infinitamente.
+*   **💥 Aniquilación Total:** Cierra procesos críticos (`AdSSO`, `AutodeskAccess`) y detiene servicios a la fuerza, incluso "asesinando" procesos anfitriones si los servicios se resisten al cierre de Windows.
+*   **🧠 Inteligencia ODIS:** Antes de usar fuerza bruta, busca y ejecuta el desinstalador subyacente oficial de Autodesk para productos modernos (2024+) `AdksUninstallHelper.exe` de forma silenciosa.
+*   **💽 Soporte para Discos Secundarios:** Escanea dinámicamente el Registro de Windows para descubrir dónde está instalado Autodesk. ¡No importa si lo instalaste en la unidad `D:\` o `E:\`, el Nuke lo encontrará!
+*   **🛠️ Modo "Troubleshooter":** Replica el comportamiento del *Microsoft Program Install and Uninstall Troubleshooter* purgando la base de datos oculta del instalador y eliminando físicamente los archivos `.msi` cacheados en `C:\Windows\Installer` que estén bloqueando nuevas instalaciones.
+*   **🌀 Rompe el "Bucle de Reinicio":** Elimina la infame subclave `PendingFileRenameOperations`, causante directa de que Windows te pida reiniciar infinitamente al intentar instalar Autodesk.
+*   **🧹 Limpieza Estética:** Elimina entradas huérfanas en el viejo Panel de Control (`C:\Windows\System32\*.cpl`) y borra la carpeta global de accesos directos del **Menú de Inicio**.
 
 ### 🛠️ Instrucciones de Uso
 

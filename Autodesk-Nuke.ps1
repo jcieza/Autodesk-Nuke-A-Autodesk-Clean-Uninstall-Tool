@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Herramienta de eliminación radical para productos Autodesk.
-    Version: 2.2.0
+    Version: 2.3.0
 
 .DESCRIPTION
     Este script elimina todas las carpetas, servicios, procesos, claves de registro y aplicaciones
@@ -145,17 +145,38 @@ Write-Host "[OK] Intento de desinstalación de paquetes finalizado." -Foreground
 # -----------------------------------------------------------------------------
 # 4. ELIMINACIÓN DE CARPETAS Y ARCHIVOS RESIDUALES
 # -----------------------------------------------------------------------------
-Write-Host "`n[PASO 3] Eliminando carpetas residuales y archivos temporales..." -ForegroundColor Cyan
+Write-Host "`n[PASO 5] Eliminando carpetas residuales y archivos huérfanos..." -ForegroundColor Cyan
+
+# Descubrimiento dinámico de rutas en discos secundarios
+Write-Host "   Buscando rutas de instalación dinámicas en el registro..." -ForegroundColor DarkGray
+$dynamicDirs = @()
+$uninstallPaths = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
+
+foreach ($path in $uninstallPaths) {
+    $keys = Get-ItemProperty $path -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match "Autodesk" -or $_.Publisher -match "Autodesk" }
+    foreach ($key in $keys) {
+        if (![string]::IsNullOrEmpty($key.InstallLocation) -and (Test-Path $key.InstallLocation)) {
+            $dynamicDirs += $key.InstallLocation
+        }
+    }
+}
+
+if ($dynamicDirs.Count -gt 0) {
+    $dynamicDirs = $dynamicDirs | Select-Object -Unique
+    Write-Host "   Se encontraron $($dynamicDirs.Count) rutas personalizadas/secundarias." -ForegroundColor Yellow
+}
 
 $dirs = @(
-    "C:\Autodesk",
-    "$env:ProgramFiles\Autodesk", 
-    "${env:ProgramFiles(x86)}\Autodesk", 
-    "$env:ProgramData\Autodesk",
-    "$env:LOCALAPPDATA\Autodesk", 
+    "C:\Program Files\Autodesk",
+    "C:\Program Files\Common Files\Autodesk Shared",
+    "C:\Program Files (x86)\Autodesk",
+    "C:\Program Files (x86)\Common Files\Autodesk Shared",
+    "C:\ProgramData\Autodesk",
+    "$env:LOCALAPPDATA\Autodesk",
     "$env:APPDATA\Autodesk",
-    "$env:ProgramFiles\Common Files\Autodesk Shared",
-    "${env:ProgramFiles(x86)}\Common Files\Autodesk Shared",
     "C:\Users\Public\Documents\Autodesk",
     "C:\Users\Public\Autodesk",
     "$env:TEMP",
@@ -164,15 +185,16 @@ $dirs = @(
     "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk"
 )
 
-foreach ($dir in $dirs) {
-    if (Test-Path $dir) { 
+# Fusionar y limpiar duplicados
+$allDirs = ($dirs + $dynamicDirs) | Select-Object -Unique
+
+foreach ($dir in $allDirs) {
+    if (Test-Path $dir) {
         Write-Host "   Eliminando: $dir" -ForegroundColor DarkGray
-        # Evitamos errores fatales si hay archivos en uso en Temp
-        Remove-Item -Path "$dir\*" -Recurse -Force -ErrorAction SilentlyContinue 
-        
-        # Intentar borrar el directorio raíz si no es Temp
-        if ($dir -notmatch "Temp$") {
+        try {
             Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-Host "      [!] No se pudo eliminar completamente: $dir" -ForegroundColor Red
         }
     } 
 }
@@ -183,7 +205,7 @@ Write-Host "[OK] Carpetas residuales procesadas." -ForegroundColor Green
 # -----------------------------------------------------------------------------
 # 5. LIMPIEZA DE REGISTRO Y REINICIO DE BUCLE
 # -----------------------------------------------------------------------------
-Write-Host "`n[PASO 4] Limpiando el Registro de Windows y solucionando bucles de reinicio..." -ForegroundColor Cyan
+Write-Host "`n[PASO 6] Limpiando el Registro de Windows y solucionando bucles de reinicio..." -ForegroundColor Cyan
 
 # Eliminar claves principales de Autodesk
 $regKeys = @(

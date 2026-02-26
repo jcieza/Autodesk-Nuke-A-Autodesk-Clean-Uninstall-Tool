@@ -30,6 +30,9 @@ If you want to fix a bug or add a feature yourself:
 
 When submitting code changes to the PowerShell script, please keep the following in mind:
 * **Safety First:** We are dealing with the Windows Registry and system folders. Always use `-ErrorAction SilentlyContinue` where appropriate so the script doesn't crash if a file is heavily locked, unless a hard fail is absolutely necessary.
+* **No dependas de la GUI:** Si Autodesk introduce una nueva herramienta, no escribas scripts que simulen clics. Encuentra la bandera silenciosa (`-q`, `/qn`, `--mode unattended`) de su desinstalador.
+* **Variables de Entorno y Rutas Dinámicas:** Usa `$env:ProgramData` o `$env:APPDATA` en lugar de `C:\ProgramData`. Aún mejor, **NUNCA** "quemes" (hardcodees) rutas estáticas si puedes. Consulta el Registro de Windows (`InstallLocation`) para descubrir las rutas de instalación reales del usuario caso por caso (soporte para discos D:, E:, etc.).
+* **Si no se borra, fuérzalo:** Si un servicio o proceso no se detiene con comandos estándar, busca el PID anfitrión vía WMI y destrúyelo, o usa la propiedad `-Force`. Autodesk es notoriamente persistente.
 * **Keep it Clean:** Follow the existing color-coded `Write-Host` structure:
   * `Cyan` for Main Steps
   * `Yellow` for active tasks or warnings
