@@ -8,7 +8,7 @@
     archivos o claves de registro bloqueados (PendingFileRenameOperations).
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.0.2
+    Versión: 2.1.0
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
@@ -75,6 +75,17 @@ Write-Host "[OK] Procesos y servicios detenidos." -ForegroundColor Green
 # 3. DESINSTALACIÓN DE PAQUETES MSI (Registro)
 # -----------------------------------------------------------------------------
 Write-Host "`n[PASO 2] Ejecutando desinstaladores silenciosos principales de Autodesk..." -ForegroundColor Cyan
+
+# Desinstalador AdksUninstallHelper (Nuevas versiones 2024+)
+$uninstallersPath = "$env:ProgramData\Autodesk\Uninstallers"
+if (Test-Path $uninstallersPath) {
+    Write-Host "   Buscando desinstaladores adicionales AdksUninstallHelper (ODIS)..." -ForegroundColor DarkGray
+    $helpers = Get-ChildItem -Path $uninstallersPath -Recurse -Filter "AdksUninstallHelper.exe" -ErrorAction SilentlyContinue
+    foreach ($helper in $helpers) {
+        Write-Host "   Ejecutando helper de desinstalación en: $($helper.Directory.Name)" -ForegroundColor Yellow
+        Start-Process -FilePath "`"$($helper.FullName)`"" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+    }
+}
 
 # Desinstalador ODIS / Access directo (si existe)
 $odisUninstaller = "C:\Program Files\Autodesk\AdODIS\V1\RemoveODIS.exe"
