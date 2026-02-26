@@ -1,21 +1,24 @@
 <#
 .SYNOPSIS
-    Autodesk Comprehensive Cleanup Script
+    Herramienta de eliminación radical para productos Autodesk.
+    Version: 2.2.0
+
 .DESCRIPTION
-    Este script realiza una limpieza profunda de las instalaciones, archivos residuales, 
-    y claves de registro de Autodesk. Está diseñado para solucionar problemas comunes de 
-    instalación, como el bucle "Reinicie antes de empezar la instalación" causado por 
-    archivos o claves de registro bloqueados (PendingFileRenameOperations).
+    Este script elimina todas las carpetas, servicios, procesos, claves de registro y aplicaciones
+    instaladas relacionadas con Autodesk de forma agresiva.
+    
+    ¡ADVERTENCIA! Este script no discrimina. Eliminará TODO lo que contenga "Autodesk".
+    Úsalo bajo tu propia responsabilidad y como último recurso (Nuke from Orbit).
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.1.0
+    Versión: 2.2.0
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
 # -----------------------------------------------------------------------------
 # 1. VERIFICACIÓN DE PRIVILEGIOS DE ADMINISTRADOR
 # -----------------------------------------------------------------------------
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.BuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "[ERROR] El script no tiene privilegios de Administrador. Intentando reejecutar con privilegios..." -ForegroundColor Red
     try {
@@ -32,39 +35,36 @@ Write-Host "[OK] Ejecutando con permisos de Administrador." -ForegroundColor Gre
 # -----------------------------------------------------------------------------
 # 2. DETENCIÓN DE PROCESOS Y SERVICIOS
 # -----------------------------------------------------------------------------
-Write-Host "`n[PASO 1] Deteniendo servicios y procesos de Autodesk y FlexNet..." -ForegroundColor Cyan
+# --- Paso 1: Detener Procesos y Servicios ---
+Write-Host "Paso 1: Deteniendo procesos y servicios de Autodesk..." -ForegroundColor Cyan
 
-$services = @(
-    "AdskLicensingService", 
-    "AdAppMgrSvc", 
-    "AutodeskDesktopApp",
-    "AutodeskDesktopAppService",
-    "AGSService",
-    "FlexNet Licensing Service",
-    "FlexNet Licensing Service 64"
-)
-foreach ($srv in $services) { 
-    $service = Get-Service -Name $srv -ErrorAction SilentlyContinue
-    if ($service) {
-        if ($service.Status -eq 'Running') {
-            Write-Host "   Deteniendo servicio: $srv" -ForegroundColor Yellow
-            Stop-Service -Name $srv -Force -ErrorAction SilentlyContinue
-        }
-    }
+# Procesos críticos a matar antes de desinstalar
+$criticalProcesses = @("AutodeskAccess", "AdskIdentityManager", "AdSSO", "Node")
+foreach ($proc in $criticalProcesses) {
+    Get-Process -Name $proc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
-$procesos = @(
-    "acad", "inventor", "AdskLicensingService", "AdAppMgrSvc", 
-    "AutodeskDesktopApp", "AdODIS", "AdskIdentityManager", "GenuineService",
-    "AdskLicensingAgent", "AcEventSync", "AcQMod", "Autodesk Access UI Host", 
-    "AdskAccessCore", "ADPClientService",
-    "FNPLicensingService", "FNPLicensingService64", "LMgrd", "Adlmint"
-)
-foreach ($proc in $procesos) { 
-    $process = Get-Process -Name $proc -ErrorAction SilentlyContinue
-    if ($process) {
-        Write-Host "   Terminando proceso: $proc" -ForegroundColor Yellow
-        Stop-Process -Name $proc -Force -ErrorAction SilentlyContinue
+$services = Get-Service | Where-Object { $_.Name -match "Autodesk" -or $_.DisplayName -match "Autodesk" }
+foreach ($srv in $services) {
+    Write-Host "  Intentando detener servicio: $($srv.Name)" -ForegroundColor Yellow
+    
+    # Intento 1: Parada normal
+    Stop-Service -Name $srv.Name -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    
+    # Verificar si se detuvo
+    $currentStatus = (Get-Service -Name $srv.Name -ErrorAction SilentlyContinue).Status
+    if ($currentStatus -ne 'Stopped') {
+        Write-Host "  [!] El servicio $($srv.Name) se resiste (Status: $currentStatus). Forzando cierre del proceso anfitrión..." -ForegroundColor Red
+        # Intento 2: Asesinato del proceso anfitrión (Ej. Node.exe anidado)
+        $wmiService = Get-WmiObject -Class Win32_Service -Filter "Name='$($srv.Name)'"
+        if ($wmiService -and $wmiService.ProcessId) {
+            Stop-Process -Id $wmiService.ProcessId -Force -ErrorAction SilentlyContinue
+            Write-Host "  [+] Proceso anfitrión PID $($wmiService.ProcessId) terminado forzosamente." -ForegroundColor Green
+        } else {
+             # Intento 3: taskkill genérico
+             taskkill /F /FI "SERVICES eq $($srv.Name)" 2>$null
+        }
     }
 }
 
@@ -159,7 +159,9 @@ $dirs = @(
     "C:\Users\Public\Documents\Autodesk",
     "C:\Users\Public\Autodesk",
     "$env:TEMP",
-    "$env:WINDIR\Temp"
+    "$env:WINDIR\Temp",
+    "$env:ProgramData\FLEXnet\adsk*",
+    "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk"
 )
 
 foreach ($dir in $dirs) {
@@ -173,13 +175,6 @@ foreach ($dir in $dirs) {
             Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue
         }
     } 
-}
-
-# Eliminar solo archivos adsk en FLEXnet superficialmente (para no afectar otras licencias)
-$flexNetPath = "$env:ProgramData\FLEXnet"
-if (Test-Path $flexNetPath) {
-    Write-Host "   Limpiando archivos de Autodesk en FLEXnet..." -ForegroundColor DarkGray
-    Get-ChildItem -Path $flexNetPath -Filter "adsk*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "[OK] Carpetas residuales procesadas." -ForegroundColor Green
