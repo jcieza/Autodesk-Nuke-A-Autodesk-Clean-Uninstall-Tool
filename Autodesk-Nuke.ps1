@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-    Herramienta de eliminación radical para productos Autodesk.
-    Version: 2.3.0
+    Herramienta de eliminación radical para productos Autodesk (Soporte Multi-Usuario).
+    Version: 2.4.0
 
 .DESCRIPTION
     Este script elimina todas las carpetas, servicios, procesos, claves de registro y aplicaciones
@@ -9,11 +9,20 @@
     
     ¡ADVERTENCIA! Este script no discrimina. Eliminará TODO lo que contenga "Autodesk".
     Úsalo bajo tu propia responsabilidad y como último recurso (Nuke from Orbit).
+
+.PARAMETER AllUsers
+    Limpiar los perfiles (AppData y Registro HKCU) de TODOS los usuarios de la máquina,
+    cargando sus NTUSER.DAT si es necesario. (Ideal para SCCM/Intune deployments).
+
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.2.0
+    Versión: 2.4.0
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
+
+param (
+    [switch]$AllUsers
+)
 
 # -----------------------------------------------------------------------------
 # 1. VERIFICACIÓN DE PRIVILEGIOS DE ADMINISTRADOR
@@ -31,6 +40,21 @@ if (-not $isAdmin) {
     }
 }
 Write-Host "[OK] Ejecutando con permisos de Administrador." -ForegroundColor Green
+
+# 1.1 CONFIGURACIÓN MULTI-USUARIO (Prompt si no se usó flag)
+if (-not $PSBoundParameters.ContainsKey('AllUsers')) {
+    Write-Host "`n[?] Configuracion Multi-Usuario:" -ForegroundColor Cyan
+    Write-Host "Este script limpiará la base de la máquina y TU perfil de usuario actual."
+    $response = Read-Host "¿Deseas limpiar también los perfiles (AppData/Registro) de TODOS los demás usuarios? (Y/N)"
+    if ($response -match "^[Yy]$") {
+        $AllUsers = $true
+        Write-Host "   -> ¡Entendido! Se aplicará la Limpieza Nuclear a TODOS los usuarios." -ForegroundColor Yellow
+    } else {
+        Write-Host "   -> Limpieza limitada al usuario actual y máquina." -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "`n[!] Flag -AllUsers detectada. Ejecutando limpieza nuclear para todos los perfiles." -ForegroundColor Yellow
+}
 
 # -----------------------------------------------------------------------------
 # 2. DETENCIÓN DE PROCESOS Y SERVICIOS
@@ -141,11 +165,72 @@ ForEach-Object {
 
 Write-Host "[OK] Intento de desinstalación de paquetes finalizado." -ForegroundColor Green
 
+# -----------------------------------------------------------------------------
+# 10. LIMPIEZA DEL REGISTRO DE USUARIOS ESPECÍFICOS (HKCU / NTUSER.DAT)
+# -----------------------------------------------------------------------------
+Write-Host "`n[PASO 10] Limpiando claves de registro de los perfiles de usuario..." -ForegroundColor Cyan
+
+$hkcuPaths = @(
+    "Software\Autodesk",
+    "Software\Microsoft\Windows\CurrentVersion\Applets\Paint\Recent File List" # A veces Autodesk deja archivos recntes aquí
+)
+
+if ($AllUsers) {
+    Write-Host "   Iniciando barrido profundo de registro para TODOS los perfiles (Cargando Hives)..." -ForegroundColor Yellow
+    # Limpiamos todos los perfiles de usuario montando sus NTUSER.DAT
+    $userProfiles = Get-ChildItem -Path "C:\Users" -Directory -Exclude "Public", "Default User"
+    
+    foreach ($profile in $userProfiles) {
+        $ntuserPath = Join-Path $profile.FullName "NTUSER.DAT"
+        if (Test-Path $ntuserPath) {
+            # Verificar si el hive ya está cargado por el usuario actual
+            $isCurrentUser = ($profile.Name -eq $env:USERNAME)
+            $hiveKey = "HKU_Temp_$($profile.Name)"
+            
+            if ($isCurrentUser) {
+                # Para el usuario actual, usar HKCU normal
+                foreach ($subPath in $hkcuPaths) {
+                    $fullPath = "HKCU:\$subPath"
+                    if (Test-Path $fullPath) {
+                        Write-Host "   Borrando $fullPath (Usuario Actual)" -ForegroundColor DarkGray
+                        Remove-Item -Path $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            } else {
+                # Cargar hive offline silenciosamente
+                reg.exe load "HKU\$hiveKey" "$ntuserPath" > $null 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "   [$($profile.Name)] Hive Montado. Limpiando registro..." -ForegroundColor DarkGray
+                    foreach ($subPath in $hkcuPaths) {
+                        $fullPath = "Registry::HKEY_USERS\$hiveKey\$subPath"
+                        if (Test-Path $fullPath) {
+                            Remove-Item -Path $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                    # Descargar hive y correr garbage collector para soltar hooks
+                    [gc]::collect()
+                    Start-Sleep -Seconds 1
+                    reg.exe unload "HKU\$hiveKey" > $null 2>&1
+                }
+            }
+        }
+    }
+} else {
+    # Limpieza estándar del usuario actual
+    foreach ($subPath in $hkcuPaths) {
+        $fullPath = "HKCU:\$subPath"
+        if (Test-Path $fullPath) {
+            Write-Host "   Borrando $fullPath (Usuario Actual)" -ForegroundColor DarkGray
+            Remove-Item -Path $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 
 # -----------------------------------------------------------------------------
-# 4. ELIMINACIÓN DE CARPETAS Y ARCHIVOS RESIDUALES
+# 11. LIMPIEZA FINAL Y VACIADO DE PAPELERA
 # -----------------------------------------------------------------------------
-Write-Host "`n[PASO 5] Eliminando carpetas residuales y archivos huérfanos..." -ForegroundColor Cyan
+Write-Host "`n[PASO 11] Vaciando la papelera y finalizando..." -ForegroundColor Cyan
 
 # Descubrimiento dinámico de rutas en discos secundarios
 Write-Host "   Buscando rutas de instalación dinámicas en el registro..." -ForegroundColor DarkGray
@@ -175,8 +260,6 @@ $dirs = @(
     "C:\Program Files (x86)\Autodesk",
     "C:\Program Files (x86)\Common Files\Autodesk Shared",
     "C:\ProgramData\Autodesk",
-    "$env:LOCALAPPDATA\Autodesk",
-    "$env:APPDATA\Autodesk",
     "C:\Users\Public\Documents\Autodesk",
     "C:\Users\Public\Autodesk",
     "$env:TEMP",
@@ -184,6 +267,19 @@ $dirs = @(
     "$env:ProgramData\FLEXnet\adsk*",
     "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk"
 )
+
+# Añadir AppData del usuario(s)
+if ($AllUsers) {
+    Write-Host "   Añadiendo directorios AppData de TODOS los usuarios al escaneo..." -ForegroundColor DarkGray
+    $userProfiles = Get-ChildItem -Path "C:\Users" -Directory -Exclude "Public"
+    foreach ($profile in $userProfiles) {
+        $dirs += "$($profile.FullName)\AppData\Local\Autodesk"
+        $dirs += "$($profile.FullName)\AppData\Roaming\Autodesk"
+    }
+} else {
+    $dirs += "$env:LOCALAPPDATA\Autodesk"
+    $dirs += "$env:APPDATA\Autodesk"
+}
 
 # Fusionar y limpiar duplicados
 $allDirs = ($dirs + $dynamicDirs) | Select-Object -Unique
