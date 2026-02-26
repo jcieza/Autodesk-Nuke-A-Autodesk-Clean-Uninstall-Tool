@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Herramienta de eliminación radical para productos Autodesk (Soporte Multi-Usuario).
-    Version: 2.4.0
+    Version: 2.3.0
 
 .DESCRIPTION
     Este script elimina todas las carpetas, servicios, procesos, claves de registro y aplicaciones
@@ -16,7 +16,7 @@
 
 .NOTES
     Autor: SSM-Dealis
-    Versión: 2.4.0
+    Versión: 2.3.0
     Uso: Ejecutar como Administrador. Importante para la publicación en GitHub.
 #>
 
