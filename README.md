@@ -3,8 +3,8 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg?logo=powershell)
 ![Windows](https://img.shields.io/badge/OS-Windows_10%20%7C%2011-blue.svg?logo=windows)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/Status-Stable_v2.0.2-brightgreen.svg)
-![Versions](https://img.shields.io/badge/Versions-2.0.2_to_6.0.0-blue.svg)
+![Status](https://img.shields.io/badge/Status-Stable_v6.3_ULTIMATE-brightgreen.svg)
+![Versions](https://img.shields.io/badge/Versions-2.0.2_to_6.3.0-blue.svg)
 ![Development](https://img.shields.io/badge/Development_Versions-Experimental-orange.svg)
 
 > **Un potente script automatizado en PowerShell para eliminar por completo los restos de Autodesk, solucionar el "bucle de reinicio" (PendingFileRenameOperations) y lograr una instalación limpia.**
@@ -26,8 +26,8 @@ He decidido no subir todo esto como *releases* oficiales que confundan a la gent
 
 ## 🚀 Inicio Rápido
 
-### Opción A (Recomendada): Usa v6.0 Interactiva (El Archivo Principal)
-Esta es la versión más potente y amigable. Te permitirá elegir qué tan profundo quieres llegar.
+### Opción A (Recomendada): Usa v6.3 ULTIMATE (El Archivo Principal)
+Esta es la versión definitiva y más potente. Fusiona todas las capacidades previas para resolver los casos más difíciles.
 ```powershell
 # 1. Click derecho en Autodesk-Nuke.ps1 → "Ejecutar con PowerShell"
 # 2. Acepta el aviso de UAC (Permisos de Administrador)
@@ -104,7 +104,8 @@ Como se mencionó, esta carpeta documenta el viaje de ingeniería inspirado en f
 | `v3.0.0-beta` | `/experimental/v3.0...` | **[BETA]** Primera fusión con bandera paramétrica de `DryRun` y barras de progreso. |
 | `v4.0.0-rc` | `/experimental/v4.0...` | **[RELEASE CANDIDATE]** La versión *Equilibrada*. Añade reintentos de lectura/escritura en archivos bloqueados del sistema. |
 | `v5.0.0-rc` | `/experimental/v5.0...` | **[CORPORATE CANDIDATE]** La versión corporativa con seguimiento de Windows EventLogs e integración SCCM. |
-| **`v6.0.0`** | `/experimental/v6.0.0/` | **[INTERACTIVE FINAL]** El peso pesado definitivo. 800 líneas. Permite elegir nivel de borrado interactivamente (BASIC/ADVANCED/ENTERPRISE). |
+| **`v6.0.0`** | `/experimental/v6.0.0/` | **[INTERACTIVE]** Versión con Interfaz de Usuario Textual y niveles de borrado. |
+| **`v6.3.0`** | Raíz / `/experimental/v6.0.0/` | **[ULTIMATE FINAL]** La síntesis definitiva. Combina TODAS las capacidades de las 10 versiones anteriores en un solo script robusto. |
 
 ---
 
